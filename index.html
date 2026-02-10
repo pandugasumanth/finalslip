@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Voter Slip</title>
+
+<style>
+/* ================= SCREEN ================= */
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  min-height:100vh;
+  background:url("laptop.png") center/cover no-repeat;
+}
+@media(max-width:768px){
+  body{ background:url("mobile.png") center/cover no-repeat; }
+}
+.container{
+  max-width:360px;
+  background:#fff;
+  border:1px solid #000;
+  padding:10px;
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+}
+select,input,button{ width:100%; padding:6px; margin:4px 0; }
+.result-card{ border-top:1px dashed #000; margin-top:8px; padding-top:6px; }
+.select-box{ font-size:12px; margin-bottom:6px; }
+
+/* ================= PRINT ================= */
+@media print{
+  @page{ size:58mm auto; margin:0; }
+
+  body{
+    width:58mm;
+    margin:0;
+    background:url("mobile.png") center/cover no-repeat;
+    font-family:"Courier New", monospace;
+  }
+
+  .container,
+  button,
+  select,
+  input{
+    display:none!important;
+  }
+
+  .print-slip{
+    width:48mm;
+    margin:0 auto;
+    padding:0;
+    font-size:13px;
+    font-weight:700;
+    line-height:1.6;
+    letter-spacing:.2px;
+    page-break-after:always;
+  }
+
+  .p-title{
+    text-align:center;
+    font-weight:900;
+    font-size:14px;
+    margin-bottom:2mm;
+  }
+
+  .p-label{
+    font-weight:900;
+    display:inline;
+  }
+
+  .p-value{
+    display:inline;
+    margin-left:2mm;
+  }
+
+  .p-divider{
+    border-top:1px dashed #000;
+    margin:2mm 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <select id="searchType">
+    <option value="epic_no">EPIC No</option>
+    <option value="name">Name</option>
+    <option value="house_No">House No</option>
+  </select>
+  <input id="search" placeholder="Enter value">
+  <button onclick="find()">Search</button>
+  <button onclick="printSelected()">Print Selected</button>
+  <div id="results"></div>
+</div>
+
+<!-- PRINT ROOT -->
+<div id="printRoot"></div>
+
+<script>
+let voters=[];
+fetch("https://opensheet.elk.sh/1xfIMsplZ_b4X4VI6D0AKUK5sQnVPRPFFgOhgJZUgAMc/Sheet1!A1:Z")
+.then(r=>r.json()).then(d=>voters=d);
+
+const norm=v=>String(v||"").trim().toUpperCase().replace(/\s+/g,"");
+
+function find(){
+  const t=searchType.value;
+  const i=norm(search.value);
+  results.innerHTML="";
+  voters.filter(v=>norm(v[t])===i).forEach(v=>{
+    const d=document.createElement("div");
+    d.className="result-card";
+    d.innerHTML=`
+      <label class="select-box">
+        <input type="checkbox" class="chk" data='${JSON.stringify(v)}'> Select
+      </label>
+      ${v.name}
+      <button onclick='printOne(${JSON.stringify(v)})'>Print</button>
+    `;
+    results.appendChild(d);
+  });
+}
+
+function buildSlip(v){
+  return `
+  <div class="print-slip">
+    <div class="p-title">ORDINARY ELECTIONS – 2026</div>
+
+    <span class="p-label">District :</span><span class="p-value">Karimnagar</span><br>
+    <span class="p-label">Municipality :</span><span class="p-value">Karimnagar MC</span><br>
+    <span class="p-label">Ward No :</span><span class="p-value">52</span><br>
+    <span class="p-label">PS No :</span><span class="p-value">${v.ps_no||""}</span>
+
+    <div class="p-divider"></div>
+
+    <span class="p-label">Voter ID :</span><span class="p-value">${v.epic_no||""}</span><br>
+    <span class="p-label">Name :</span><span class="p-value">${v.name||""}</span><br>
+    <span class="p-label">Father/Husband :</span><span class="p-value">${v.relation_name||""}</span><br>
+    <span class="p-label">Door No :</span><span class="p-value">${v.house_No||""}</span><br>
+    <span class="p-label">Serial No :</span><span class="p-value">${v.serial_no||""}</span><br>
+    <span class="p-label">Age/Gender :</span><span class="p-value">${v.age||""}/${v.gender||""}</span>
+
+    <div class="p-divider"></div>
+
+    <span class="p-label">PS Location :</span>
+    <span class="p-value">
+      ${(v.ps_location || "").replace(/,/g,"<br>")}
+    </span>
+  </div>`;
+}
+
+function printOne(v){
+  printRoot.innerHTML=buildSlip(v);
+  window.print();
+}
+
+function printSelected(){
+  let html="";
+  document.querySelectorAll(".chk:checked").forEach(c=>{
+    html+=buildSlip(JSON.parse(c.dataset));
+  });
+  if(!html) return alert("No selection");
+  printRoot.innerHTML=html;
+  window.print();
+}
+</script>
+
+</body>
+</html>
