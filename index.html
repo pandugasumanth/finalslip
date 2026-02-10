@@ -28,7 +28,7 @@ select,input,button{ width:100%; padding:6px; margin:4px 0; }
 .result-card{ border-top:1px dashed #000; margin-top:8px; padding-top:6px; }
 .select-box{ font-size:12px; margin-bottom:6px; }
 
-/* ================= PRINT ================= */
+/* ================= PRINT (DO NOT TOUCH) ================= */
 @media print{
   @page{ size:58mm auto; margin:0; }
 
@@ -90,9 +90,18 @@ select,input,button{ width:100%; padding:6px; margin:4px 0; }
     <option value="name">Name</option>
     <option value="house_No">House No</option>
   </select>
+
   <input id="search" placeholder="Enter value">
   <button onclick="find()">Search</button>
+
+  <!-- Select all -->
+  <label class="select-box">
+    <input type="checkbox" id="selectAll" onclick="toggleAll(this)">
+    Select All
+  </label>
+
   <button onclick="printSelected()">Print Selected</button>
+
   <div id="results"></div>
 </div>
 
@@ -110,17 +119,27 @@ function find(){
   const t=searchType.value;
   const i=norm(search.value);
   results.innerHTML="";
+  selectAll.checked=false;
+
   voters.filter(v=>norm(v[t])===i).forEach(v=>{
     const d=document.createElement("div");
     d.className="result-card";
     d.innerHTML=`
       <label class="select-box">
-        <input type="checkbox" class="chk" data='${JSON.stringify(v)}'> Select
+        <input type="checkbox" class="chk">
+        Select
       </label>
-      ${v.name}
+      <b>${v.name}</b>
       <button onclick='printOne(${JSON.stringify(v)})'>Print</button>
     `;
+    d.querySelector(".chk").dataset.voter = JSON.stringify(v);
     results.appendChild(d);
+  });
+}
+
+function toggleAll(master){
+  document.querySelectorAll(".chk").forEach(c=>{
+    c.checked = master.checked;
   });
 }
 
@@ -153,17 +172,22 @@ function buildSlip(v){
 }
 
 function printOne(v){
-  printRoot.innerHTML=buildSlip(v);
+  printRoot.innerHTML = buildSlip(v);
   window.print();
 }
 
 function printSelected(){
   let html="";
   document.querySelectorAll(".chk:checked").forEach(c=>{
-    html+=buildSlip(JSON.parse(c.dataset));
+    html += buildSlip(JSON.parse(c.dataset.voter));
   });
-  if(!html) return alert("No selection");
-  printRoot.innerHTML=html;
+
+  if(!html){
+    alert("Please select at least one voter");
+    return;
+  }
+
+  printRoot.innerHTML = html;
   window.print();
 }
 </script>
